@@ -31,7 +31,7 @@ connectDB().then(() => {
     app.use(express.json());
 
     // Configure CORS for allowed origins
-    const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000', 'https://habit-tracker-p9t3.onrender.com','https://vercel.com/arindam-ghoshs-projects/habit-tracker-frontend/4nMczYLfbscdtJCkTN14fxSrCocz'];
+    const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000', 'https://habit-tracker-p9t3.onrender.com','https://habit-tracker-frontend-two.vercel.app/'];
 
     app.use(cors({
         origin: (origin, callback) => {
