@@ -17,24 +17,90 @@ exports.addHabit = async(req,res) =>{
     res.status(201).json(post);
 }
 
+// exports.toggleHabit = async(req,res)=>{
+//     const habit = await Habit.findOne({id:req.params.id});
+//     if(!habit)
+//     {
+//         console.log("There is no Habit");
+//     }
+//     const date = req.body.date;
+//     if(habit.completedDates.includes(date))
+//     {
+//         habit.completedDates = habit.completedDates.filter(d => d !== date);
+//     }
+//     else{
+//         habit.completedDates.push(date);
+//     }
+
+//     await habit.save();
+//     res.status(200).json(habit);
+// }
+
+const daysDiff = (a,b)=>{
+    const da = new Date(a + 'T00:00:00Z');
+    const db = new Date(b + 'T00:00:00Z');
+    return Math.floor((db - da)/86400000);
+}
+
 exports.toggleHabit = async(req,res)=>{
-    const habit = await Habit.findOne({id:req.params.id});
+    try{
+       const habit = await Habit.findOne({id:req.params.id});
     if(!habit)
     {
-        console.log("There is no Habit");
+        console.log("habit is not found");
     }
-    const date = req.body.date;
-    if(habit.completedDates.includes(date))
+
+    const today = new Date().toISOString.split('T')[0];
+    const date = new Date(req.body.date).toISOString.split('T')[0];
+
+    if(date!=today)
     {
-        habit.completedDates = habit.completedDates.filter(d => d !== date);
+        return res.status(400).json("Only today is allowed");
     }
-    else{
-        habit.completedDates.push(date);
+
+    if(habit.completedDates.length > 0)
+    {
+        const last = [...habit.completedDates].sort()[habit.completedDates.length - 1];
+        if(daysDiff(last,today)>1)
+        {
+            return res.status(409).json({message:"Streak is already broken"});
+        }
+    }
+
+    if(habit.completedDates.includes(today))
+    {
+        habit.completedDates = habit.completedDates.filter(d => d !== today);
+    }else{
+        habit.completedDates.push(today);
     }
 
     await habit.save();
-    res.status(200).json(habit);
+    return res.status(200).json(habit);
+    }
+    catch(err){
+  console.error(err); 
+  return res.status(500).json({message:'Server Error'})  
 }
+}
+
+exports.resetHabit = async(req,res)=>{
+    try{
+       const habit = await Habit.findOne({id:req.params.id});
+    if(!habit)
+    {
+        console.log("habit is not found");
+    }
+    habit.completedDates = [];
+    await habit.save();
+    return res.status(200).json(habit);
+    }
+    catch(error)
+    {
+        console.error(error);
+        return res.status(500).json({message:'Server Error'});
+    }
+}
+
 
 exports.removeHabit = async (req, res) => {
     try {
