@@ -5,7 +5,7 @@ const dateSchema = new mongoose.Schema({
     name: { type: String },
     frequency: { type: String, enum: ["daily", "weekly"] },
     completedDates: [{ type: String }],
-    createdAt:{type:String}
+    createdAt:{type:String,default:()=>new Date().toISOString()}
 });
 
 module.exports = mongoose.model("Date",dateSchema);
