@@ -28,7 +28,7 @@ exports.addHabit = async (req, res) => {
   }
 }
 
-// Toggle habit (daily or weekly, rolling logic)
+// Toggle habit (backend)
 exports.toggleHabit = async (req, res) => {
   try {
     const habit = await Habit.findOne({ id: req.params.id });
@@ -36,32 +36,14 @@ exports.toggleHabit = async (req, res) => {
 
     if (!Array.isArray(habit.completedDates)) habit.completedDates = [];
 
-    const now = new Date();
-    const lastCompletion = habit.completedDates.length > 0 
-      ? new Date(habit.completedDates[habit.completedDates.length - 1])
-      : null;
+    const today = new Date().toISOString().split("T")[0];
 
-    let nextAvailable = now;
-    if (lastCompletion) {
-      if (habit.frequency === "daily") {
-        nextAvailable = new Date(lastCompletion.getTime() + 24*60*60*1000);
-      } else if (habit.frequency === "weekly") {
-        nextAvailable = new Date(lastCompletion.getTime() + 7*24*60*60*1000);
-      }
-    }
-
-    if (now < nextAvailable) {
-      return res.status(400).json({ message: "Too early to mark complete" });
-    }
-
-    // Toggle today's completion
-    const today = now.toISOString().split("T")[0];
     if (habit.completedDates.includes(today)) {
-      habit.completedDates = habit.completedDates.filter(d => d !== today);
-    } else {
-      habit.completedDates.push(today);
+      // Already done today, just return the habit
+      return res.status(200).json(habit);
     }
 
+    habit.completedDates.push(today);
     await habit.save();
     return res.status(200).json(habit);
 
@@ -70,6 +52,8 @@ exports.toggleHabit = async (req, res) => {
     return res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
+
+
 
 // Reset habit
 exports.resetHabit = async (req,res) => {
