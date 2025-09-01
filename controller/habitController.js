@@ -28,30 +28,34 @@ exports.addHabit = async (req, res) => {
   }
 }
 
-// Toggle habit
-// Toggle habit
+// Toggle habit (daily or weekly, rolling logic)
 exports.toggleHabit = async (req, res) => {
   try {
-    console.log("PATCH /api/habits/:id called with params:", req.params, "and body:", req.body);
-
     const habit = await Habit.findOne({ id: req.params.id });
-    if (!habit) {
-      return res.status(404).json({ message: "Habit not found" });
+    if (!habit) return res.status(404).json({ message: "Habit not found" });
+
+    if (!Array.isArray(habit.completedDates)) habit.completedDates = [];
+
+    const now = new Date();
+    const lastCompletion = habit.completedDates.length > 0 
+      ? new Date(habit.completedDates[habit.completedDates.length - 1])
+      : null;
+
+    let nextAvailable = now;
+    if (lastCompletion) {
+      if (habit.frequency === "daily") {
+        nextAvailable = new Date(lastCompletion.getTime() + 24*60*60*1000);
+      } else if (habit.frequency === "weekly") {
+        nextAvailable = new Date(lastCompletion.getTime() + 7*24*60*60*1000);
+      }
     }
 
-    const today = new Date().toISOString().split("T")[0];
-    const reqDate = req.body.date
-      ? new Date(req.body.date).toISOString().split("T")[0]
-      : today;
-
-    if (reqDate !== today) {
-      return res.status(400).json({ message: "Only today is allowed" });
+    if (now < nextAvailable) {
+      return res.status(400).json({ message: "Too early to mark complete" });
     }
 
-    if (!Array.isArray(habit.completedDates)) {
-      habit.completedDates = [];
-    }
-
+    // Toggle today's completion
+    const today = now.toISOString().split("T")[0];
     if (habit.completedDates.includes(today)) {
       habit.completedDates = habit.completedDates.filter(d => d !== today);
     } else {
@@ -59,21 +63,16 @@ exports.toggleHabit = async (req, res) => {
     }
 
     await habit.save();
-
     return res.status(200).json(habit);
+
   } catch (error) {
     console.error("Toggle habit error:", error);
     return res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
-
-
-
-
-
 // Reset habit
-exports.resetHabit = async(req,res) => {
+exports.resetHabit = async (req,res) => {
   try {
     const habit = await Habit.findOne({ id: req.params.id });
     if (!habit) return res.status(404).json({ message:'Habit not found' });
@@ -88,7 +87,7 @@ exports.resetHabit = async(req,res) => {
 }
 
 // Remove habit
-exports.removeHabit = async(req,res) => {
+exports.removeHabit = async (req,res) => {
   try {
     const habit = await Habit.findOneAndDelete({ id: req.params.id });
     if (!habit) return res.status(404).json({ message:'Habit not found' });
